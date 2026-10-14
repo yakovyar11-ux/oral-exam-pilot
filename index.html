@@ -1,0 +1,103 @@
+
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>בחינה בעל פה – בדיקת הקלטה</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      direction: rtl;
+      text-align: center;
+      max-width: 650px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f2f5fa;
+      color: #17365d;
+    }
+    main {
+      background: white;
+      padding: 28px;
+      border-radius: 16px;
+    }
+    button {
+      font-size: 18px;
+      padding: 12px 22px;
+      margin: 8px;
+      cursor: pointer;
+      border-radius: 8px;
+    }
+    #status { margin: 18px; font-weight: bold; }
+    audio { width: 100%; margin-top: 15px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>בחינה בעל פה</h1>
+    <h2>בדיקת מיקרופון</h2>
+    <p>שאלת דמה: מהי דמוקרטיה?</p>
+
+    <button id="start">התחל הקלטה</button>
+    <button id="stop" disabled>עצור הקלטה</button>
+
+    <p id="status">לחץ על "התחל הקלטה" ואשר גישה למיקרופון.</p>
+    <audio id="player" controls hidden></audio>
+  </main>
+
+  <script>
+    let recorder;
+    let chunks = [];
+    let stream;
+
+    document.getElementById("start").onclick = async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: true
+        });
+
+        chunks = [];
+        recorder = new MediaRecorder(stream);
+
+        recorder.ondataavailable = event => {
+          if (event.data.size > 0) chunks.push(event.data);
+        };
+
+        recorder.onstop = () => {
+          const blob = new Blob(chunks, {
+            type: recorder.mimeType
+          });
+
+          const player = document.getElementById("player");
+          player.src = URL.createObjectURL(blob);
+          player.hidden = false;
+
+          document.getElementById("status").textContent =
+            "ההקלטה הסתיימה. אפשר להאזין לה.";
+
+          stream.getTracks().forEach(track => track.stop());
+        };
+
+        recorder.start();
+        document.getElementById("start").disabled = true;
+        document.getElementById("stop").disabled = false;
+        document.getElementById("status").textContent =
+          "מקליט... דבר עכשיו.";
+
+      } catch (error) {
+        document.getElementById("status").textContent =
+          "לא ניתן להקליט. בדוק הרשאת מיקרופון ונסה שוב.";
+        console.error(error);
+      }
+    };
+
+    document.getElementById("stop").onclick = () => {
+      if (recorder && recorder.state === "recording") {
+        recorder.stop();
+        document.getElementById("start").disabled = false;
+        document.getElementById("stop").disabled = true;
+      }
+    };
+  </script>
+</body>
+</html>
